@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Środowisko wirtualne
+venv/
+.venv/
+
+# Lokalne bazy danych
+*.db
+*.sqlite
+*.sqlite3
+
+# Buildozer i Android
+.buildozer/
+bin/
+
+# Pliki systemowe
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Konfiguracja lokalna i sekrety
+.env
+.env.*
+
+# IDE
+.idea/
+.vscode/
