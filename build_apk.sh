@@ -22,8 +22,10 @@ printf '%s\n' "=== Automatyczne budowanie Kalkulatora Budowlanego ==="
 command -v git >/dev/null 2>&1 || error "Nie znaleziono polecenia git."
 if [[ -x "$PROJECT_DIR/.venv-buildozer/bin/buildozer" ]]; then
     BUILDOZER="$PROJECT_DIR/.venv-buildozer/bin/buildozer"
+    export PATH="$PROJECT_DIR/.venv-buildozer/bin:$PATH"
 elif [[ -x "$PROJECT_DIR/venv_buildozer/bin/buildozer" ]]; then
     BUILDOZER="$PROJECT_DIR/venv_buildozer/bin/buildozer"
+    export PATH="$PROJECT_DIR/venv_buildozer/bin:$PATH"
 elif command -v buildozer >/dev/null 2>&1; then
     BUILDOZER="$(command -v buildozer)"
 else
