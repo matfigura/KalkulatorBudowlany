@@ -27,4 +27,8 @@ desktop.ini
 
 # IDE
 .idea/
+
+# Logi budowania
+buildozer-build.log
+
 .vscode/
