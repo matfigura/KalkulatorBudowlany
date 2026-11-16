@@ -1,6 +1,8 @@
 from kivy.metrics import dp
 from kivy.clock import Clock
+from kivy.core.window import Window
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.widget import Widget
 
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.label import MDLabel
@@ -36,9 +38,10 @@ class AddScreen(MDBoxLayout):
             spacing=dp(15),
             size_hint_y=None,
         )
-        self.form.bind(
-            minimum_height=self.form.setter("height")
-        )
+        # Formularz zawsze wypełnia co najmniej całą wysokość
+        # ScrollView - dzięki temu karta jest u GÓRY, a nie na dole.
+        self.form.bind(minimum_height=self._update_form_height)
+        self.scroll.bind(height=self._update_form_height)
 
         # KARTA FORMULARZA
         card = make_card(padding=dp(20), spacing=dp(14))
@@ -93,9 +96,41 @@ class AddScreen(MDBoxLayout):
         card.add_widget(self.status_label)
 
         self.form.add_widget(card)
+
+        # Rozciągliwy wypełniacz pod kartą - spycha kartę do góry
+        self.form.add_widget(Widget(size_hint_y=1))
+
         self.scroll.add_widget(self.form)
 
         self.add_widget(self.scroll)
+
+        # Reakcja na pojawienie się / zniknięcie klawiatury
+        self._description = description
+        self._description_height = description.height
+        Window.bind(keyboard_height=self.on_keyboard_height)
+
+    def _update_form_height(self, *args):
+        self.form.height = max(
+            self.form.minimum_height,
+            self.scroll.height,
+        )
+
+    def on_keyboard_height(self, window, height):
+        # Przy otwartej klawiaturze chowamy opis, żeby formularz
+        # zmieścił się nad klawiaturą.
+        if height > 0:
+            self._description.height = 0
+            self._description.opacity = 0
+        else:
+            self._description.height = self._description_height
+            self._description.opacity = 1
+
+        for field in (self.name_field, self.price_field):
+            if field.focus:
+                Clock.schedule_once(
+                    lambda dt, f=field: self.scroll_to_field(f),
+                    0.2,
+                )
 
     def on_field_focus(self, instance, focused):
 

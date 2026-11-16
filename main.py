@@ -36,12 +36,13 @@ class KalkulatorBudowlanyApp(MDApp):
         Window.clearcolor = BG
 
         if platform == "android":
-            Window.softinput_mode = "below_target"
+            # "resize" - okno kurczy się nad klawiaturą, więc
+            # formularz skaluje się razem z nią i nic się nie nakłada.
+            Window.softinput_mode = "resize"
 
         # ŚCIEŻKA BAZY DANYCH
 
         if platform == "android":
-            Config.set("kivy", "keyboard_mode", "below_target")
 
             db_path = (
                 Path(self.user_data_dir)
