@@ -177,7 +177,7 @@ class SavedScreen(MDBoxLayout):
 
         buttons_row = button_row()
 
-        popup = make_popup("Edytuj usługę", content, dp(320))
+        popup = make_popup("Edytuj usługę", content, dp(320), align_top=True)
 
         cancel_button = tonal_button(
             "Anuluj", height=dp(48), size_hint=(0.5, 1)

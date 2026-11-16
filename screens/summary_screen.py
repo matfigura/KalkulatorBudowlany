@@ -326,7 +326,7 @@ class SummaryScreen(MDBoxLayout):
 
         content.add_widget(buttons)
 
-        popup = make_popup(title, content, dp(250))
+        popup = make_popup(title, content, dp(250), align_top=True)
 
         def save_changes(instance):
             try:

@@ -97,8 +97,9 @@ class AdaptivePopup(Popup):
     - z klawiaturą: przyklejony do góry widocznego obszaru,
       a jego wysokość jest ograniczona do wolnego miejsca."""
 
-    def __init__(self, desired_height=dp(300), **kwargs):
+    def __init__(self, desired_height=dp(300), align_top=False, **kwargs):
         self._desired_height = desired_height
+        self.align_top = align_top
         super().__init__(**kwargs)
 
     def on_open(self):
@@ -128,14 +129,23 @@ class AdaptivePopup(Popup):
             return
         self.center_x = Window.width / 2
         if Window.keyboard_height > 0:
-            self.top = Window.height - dp(12)
+            target_top = Window.height - dp(12)
+        elif self.align_top:
+            # Okna z polami tekstowymi zawsze u góry, żeby klawiatura
+            # nigdy ich nie zasłaniała (nawet gdy system nie zgłasza
+            # wysokości klawiatury).
+            target_top = Window.height - dp(40)
         else:
             self.center_y = Window.height / 2
+            return
+        if abs(self.top - target_top) > 1:
+            self.top = target_top
 
 
-def make_popup(title, content, height):
+def make_popup(title, content, height, align_top=False):
     return AdaptivePopup(
         desired_height=height,
+        align_top=align_top,
         title=title,
         content=content,
         size_hint=(0.92, None),
