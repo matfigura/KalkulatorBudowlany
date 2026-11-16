@@ -1,3 +1,6 @@
+"""Wspólny styl aplikacji (kolory + gotowe widgety)."""
+from kivy.clock import Clock
+from kivy.core.window import Window
 from kivy.metrics import dp
 from kivy.uix.popup import Popup
 
@@ -88,8 +91,51 @@ def muted(text, height=dp(30), halign="left"):
 
 
 # ---------- POPUP ----------
+class AdaptivePopup(Popup):
+    """Popup, który dopasowuje się do klawiatury ekranowej:
+    - bez klawiatury: wyśrodkowany,
+    - z klawiaturą: przyklejony do góry widocznego obszaru,
+      a jego wysokość jest ograniczona do wolnego miejsca."""
+
+    def __init__(self, desired_height=dp(300), **kwargs):
+        self._desired_height = desired_height
+        super().__init__(**kwargs)
+
+    def on_open(self):
+        Window.bind(
+            keyboard_height=self._on_keyboard,
+            size=self._on_keyboard,
+        )
+        self._fit()
+
+    def on_dismiss(self):
+        Window.unbind(
+            keyboard_height=self._on_keyboard,
+            size=self._on_keyboard,
+        )
+
+    def _on_keyboard(self, *args):
+        # Opóźnienie, żeby wykonać się PO własnym wyśrodkowaniu Kivy
+        Clock.schedule_once(lambda dt: self._fit(), 0)
+        Clock.schedule_once(lambda dt: self._fit(), 0.25)
+
+    def _fit(self):
+        self.height = min(self._desired_height, Window.height - dp(24))
+        self._align_center()
+
+    def _align_center(self, *args):
+        if not getattr(self, "_is_open", True):
+            return
+        self.center_x = Window.width / 2
+        if Window.keyboard_height > 0:
+            self.top = Window.height - dp(12)
+        else:
+            self.center_y = Window.height / 2
+
+
 def make_popup(title, content, height):
-    return Popup(
+    return AdaptivePopup(
+        desired_height=height,
         title=title,
         content=content,
         size_hint=(0.92, None),
