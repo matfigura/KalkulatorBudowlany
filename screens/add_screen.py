@@ -1,10 +1,12 @@
-
 from kivy.metrics import dp
+from kivy.clock import Clock
+from kivy.uix.scrollview import ScrollView
 
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.label import MDLabel
 from kivymd.uix.textfield import MDTextField
-from kivymd.uix.button import MDRaisedButton
+
+from theme import BG, PRIMARY, make_card, primary_button, heading, muted
 
 
 class AddScreen(MDBoxLayout):
@@ -16,72 +18,122 @@ class AddScreen(MDBoxLayout):
         self.on_template_added = on_template_added
 
         self.orientation = "vertical"
-        self.padding = dp(20)
-        self.spacing = dp(15)
+        self.md_bg_color = BG
+        self.padding = dp(12)
+        self.spacing = dp(10)
 
-        title = MDLabel(
-            text="Dodaj nową usługę",
-            font_style="H5",
-            halign="center",
-            size_hint_y=None,
-            height=dp(50),
+        # PRZEWIJANY FORMULARZ
+        self.scroll = ScrollView(
+            do_scroll_x=False,
+            do_scroll_y=True,
+            bar_width=dp(3),
+            scroll_type=["bars", "content"],
         )
 
-        description = MDLabel(
-            text="Utwórz szablon usługi z domyślną ceną za m².",
-            halign="center",
-            theme_text_color="Secondary",
+        self.form = MDBoxLayout(
+            orientation="vertical",
+            padding=dp(4),
+            spacing=dp(15),
             size_hint_y=None,
-            height=dp(45),
+        )
+        self.form.bind(
+            minimum_height=self.form.setter("height")
+        )
+
+        # KARTA FORMULARZA
+        card = make_card(padding=dp(20), spacing=dp(14))
+
+        title = heading(
+            "Dodaj nową usługę",
+            height=dp(40),
+            font_style="H5",
+        )
+
+        description = muted(
+            "Utwórz szablon usługi z domyślną ceną za m².",
+            height=dp(40),
         )
 
         self.name_field = MDTextField(
             hint_text="Nazwa usługi",
             mode="rectangle",
+            line_color_focus=PRIMARY,
             size_hint_y=None,
-            height=dp(55),
+            height=dp(60),
         )
 
         self.price_field = MDTextField(
             hint_text="Domyślna cena za m² (zł)",
             mode="rectangle",
             input_filter="float",
+            line_color_focus=PRIMARY,
             size_hint_y=None,
-            height=dp(55),
+            height=dp(60),
         )
+
+        # AUTOMATYCZNE PRZEWIJANIE DO AKTYWNEGO POLA
+        self.name_field.bind(focus=self.on_field_focus)
+        self.price_field.bind(focus=self.on_field_focus)
+
+        self.save_button = primary_button("Zapisz usługę")
+        self.save_button.bind(on_release=self.save_template)
 
         self.status_label = MDLabel(
             text="",
             halign="center",
             size_hint_y=None,
-            height=dp(45),
+            height=dp(40),
         )
 
-        save_button = MDRaisedButton(
-            text="Zapisz usługę",
-            size_hint_x=1,
-        )
+        card.add_widget(title)
+        card.add_widget(description)
+        card.add_widget(self.name_field)
+        card.add_widget(self.price_field)
+        card.add_widget(self.save_button)
+        card.add_widget(self.status_label)
 
-        save_button.bind(on_release=self.save_template)
+        self.form.add_widget(card)
+        self.scroll.add_widget(self.form)
 
-        self.add_widget(title)
-        self.add_widget(description)
-        self.add_widget(self.name_field)
-        self.add_widget(self.price_field)
-        self.add_widget(save_button)
-        self.add_widget(self.status_label)
+        self.add_widget(self.scroll)
+
+    def on_field_focus(self, instance, focused):
+
+        if focused:
+            Clock.schedule_once(
+                lambda dt: self.scroll_to_field(instance),
+                0.35
+            )
+
+    def scroll_to_field(self, field):
+
+        try:
+            self.scroll.scroll_to(
+                field,
+                padding=dp(30),
+                animate=True
+            )
+        except Exception:
+            pass
 
     def save_template(self, instance):
 
         name = self.name_field.text.strip()
-        price_text = self.price_field.text.strip().replace(",", ".")
+
+        price_text = (
+            self.price_field.text
+            .strip()
+            .replace(",", ".")
+        )
 
         if not name:
             self.show_error("Wpisz nazwę usługi.")
+            self.name_field.focus = True
             return
 
         if not price_text:
             self.show_error("Wpisz domyślną cenę.")
+            self.price_field.focus = True
             return
 
         try:
@@ -100,7 +152,13 @@ class AddScreen(MDBoxLayout):
             self.name_field.text = ""
             self.price_field.text = ""
 
-            self.status_label.text = "Usługa została zapisana."
+            self.name_field.focus = False
+            self.price_field.focus = False
+
+            self.status_label.text = (
+                "Usługa została zapisana."
+            )
+
             self.status_label.theme_text_color = "Primary"
 
             if self.on_template_added:
@@ -110,7 +168,9 @@ class AddScreen(MDBoxLayout):
             self.show_error(str(error))
 
         except Exception as error:
-            self.show_error(f"Nie udało się zapisać usługi: {error}")
+            self.show_error(
+                f"Nie udało się zapisać usługi: {error}"
+            )
 
     def show_error(self, message):
 

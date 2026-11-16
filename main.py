@@ -1,7 +1,8 @@
-
 from pathlib import Path
 
 from kivy.utils import platform
+from kivy.core.window import Window
+from kivy.config import Config
 from kivymd.app import MDApp
 from kivymd.uix.bottomnavigation import (
     MDBottomNavigation,
@@ -9,12 +10,14 @@ from kivymd.uix.bottomnavigation import (
 )
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.label import MDLabel
+from kivymd.uix.toolbar import MDTopAppBar
 
 from database import Database
 from calculations import CalculatorService
 from screens.saved_screen import SavedScreen
 from screens.summary_screen import SummaryScreen
 from screens.add_screen import AddScreen
+from theme import BG, PRIMARY, WHITE
 
 
 class KalkulatorBudowlanyApp(MDApp):
@@ -27,11 +30,18 @@ class KalkulatorBudowlanyApp(MDApp):
 
         self.theme_cls.theme_style = "Light"
         self.theme_cls.primary_palette = "Blue"
+        self.theme_cls.primary_hue = "700"
         self.theme_cls.accent_palette = "Orange"
+
+        Window.clearcolor = BG
+
+        if platform == "android":
+            Window.softinput_mode = "below_target"
 
         # ŚCIEŻKA BAZY DANYCH
 
         if platform == "android":
+            Config.set("kivy", "keyboard_mode", "below_target")
 
             db_path = (
                 Path(self.user_data_dir)
@@ -56,21 +66,36 @@ class KalkulatorBudowlanyApp(MDApp):
         templates = self.db.get_templates()
 
         print("LICZBA SZABLONÓW:", len(templates))
-        print("SZABLONY:", [dict(row) for row in templates])    
+        print("SZABLONY:", [dict(row) for row in templates])
 
         # GŁÓWNY UKŁAD
 
         root = MDBoxLayout(
-            orientation="vertical"
+            orientation="vertical",
+            md_bg_color=BG
         )
+
+        # GÓRNY PASEK
+
+        top_bar = MDTopAppBar(
+            title="Kalkulator Budowlany",
+            elevation=0,
+            md_bg_color=PRIMARY,
+            specific_text_color=WHITE,
+        )
+        root.add_widget(top_bar)
 
         # DOLNA NAWIGACJA
 
         navigation = MDBottomNavigation(
             panel_color="#FFFFFF",
-            selected_color_background="#DCE7F5",
-            text_color_active="#1565C0"
+            selected_color_background="#E4EDF7",
+            text_color_active="#17528F",
         )
+
+        # Ustawiane po utworzeniu widgetu (w konstruktorze powoduje
+        # błąd, bo self.ids jeszcze nie istnieje).
+        navigation.text_color_normal = "#7A8594"
 
         # ZAKŁADKA 1
 
@@ -82,7 +107,6 @@ class KalkulatorBudowlanyApp(MDApp):
 
         self.saved_screen = SavedScreen(self.calculator)
         saved_tab.add_widget(self.saved_screen)
-
 
         # ZAKŁADKA 2
 
@@ -118,8 +142,6 @@ class KalkulatorBudowlanyApp(MDApp):
         root.add_widget(navigation)
 
         return root
-
-    # WIDOK TYMCZASOWY
 
     def refresh_saved_screen(self):
         if hasattr(self, "saved_screen"):

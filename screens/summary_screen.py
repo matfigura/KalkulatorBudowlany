@@ -1,18 +1,16 @@
-
 from kivy.metrics import dp
 from kivy.utils import platform
 from kivy.core.clipboard import Clipboard
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.popup import Popup
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.label import Label
-from kivy.uix.button import Button
 
 from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.card import MDCard
 from kivymd.uix.label import MDLabel
-from kivymd.uix.button import MDRaisedButton
 from kivymd.uix.textfield import MDTextField
+
+from theme import (
+    BG, PRIMARY, WHITE, TEXT_DARK, make_card, make_popup, button_row,
+    primary_button, tonal_button, danger_button, heading,
+)
 
 
 # -------------------------------------------------
@@ -90,8 +88,7 @@ def share_text(text):
         activity.startActivity(chooser)
 
     else:
-        # Na Windows podczas testowania kopiujemy tekst
-        # do schowka zamiast otwierać Android Sharesheet.
+        # Na Windows podczas testowania kopiujemy tekst do schowka.
         Clipboard.copy(text)
 
 
@@ -107,30 +104,50 @@ class SummaryScreen(MDBoxLayout):
         self.calculator = calculator
 
         self.orientation = "vertical"
+        self.md_bg_color = BG
         self.padding = dp(12)
         self.spacing = dp(10)
 
-        # Łączna wartość kosztorysu
-        self.total_label = MDLabel(
-            text="Łączna wartość: 0,00 zł",
-            font_style="H5",
-            halign="center",
-            size_hint_y=None,
-            height=dp(50),
+        # Łączna wartość kosztorysu - wyróżniona karta
+        total_card = make_card(
+            padding=dp(14),
+            md_bg_color=PRIMARY,
         )
-        self.add_widget(self.total_label)
+
+        total_caption = MDLabel(
+            text="Łączna wartość kosztorysu",
+            halign="center",
+            theme_text_color="Custom",
+            text_color=(1, 1, 1, 0.8),
+            size_hint_y=None,
+            height=dp(22),
+        )
+
+        self.total_label = MDLabel(
+            text="0,00 zł",
+            font_style="H4",
+            halign="center",
+            theme_text_color="Custom",
+            text_color=WHITE,
+            size_hint_y=None,
+            height=dp(48),
+        )
+
+        total_card.add_widget(total_caption)
+        total_card.add_widget(self.total_label)
+        self.add_widget(total_card)
 
         # Komunikaty dla użytkownika
         self.status_label = MDLabel(
             text="",
             halign="center",
             size_hint_y=None,
-            height=dp(35),
+            height=dp(30),
         )
         self.add_widget(self.status_label)
 
         # Przewijana lista pozycji
-        self.scroll = ScrollView()
+        self.scroll = ScrollView(bar_width=dp(3))
 
         self.items_layout = MDBoxLayout(
             orientation="vertical",
@@ -147,23 +164,15 @@ class SummaryScreen(MDBoxLayout):
         self.add_widget(self.scroll)
 
         # Przycisk udostępniania
-        self.share_button = MDRaisedButton(
-            text="Udostępnij kosztorys",
-            size_hint_x=1,
-            size_hint_y=None,
-            height=dp(48),
-            on_release=self.share_estimate,
-        )
+        self.share_button = primary_button("Udostępnij kosztorys")
+        self.share_button.bind(on_release=self.share_estimate)
         self.add_widget(self.share_button)
 
         # Przycisk czyszczenia całego kosztorysu
-        self.clear_button = MDRaisedButton(
-            text="Wyczyść cały kosztorys",
-            size_hint_x=1,
-            size_hint_y=None,
-            height=dp(48),
-            on_release=self.confirm_clear_estimate,
+        self.clear_button = danger_button(
+            "Wyczyść cały kosztorys", height=dp(46)
         )
+        self.clear_button.bind(on_release=self.confirm_clear_estimate)
         self.add_widget(self.clear_button)
 
         self.refresh_summary()
@@ -185,7 +194,7 @@ class SummaryScreen(MDBoxLayout):
         total = self.calculator.get_total()
 
         self.total_label.text = (
-            f"Łączna wartość: {total:.2f} zł".replace(".", ",")
+            f"{total:.2f} zł".replace(".", ",")
         )
 
         if not items:
@@ -193,6 +202,7 @@ class SummaryScreen(MDBoxLayout):
                 MDLabel(
                     text="Kosztorys jest pusty.",
                     halign="center",
+                    theme_text_color="Secondary",
                     size_hint_y=None,
                     height=dp(100),
                 )
@@ -203,21 +213,9 @@ class SummaryScreen(MDBoxLayout):
     # -------------------------------------------------
 
     def create_item_card(self, item):
-        card = MDCard(
-            orientation="vertical",
-            padding=dp(12),
-            spacing=dp(8),
-            size_hint_y=None,
-            height=dp(210),
-            elevation=2,
-        )
+        card = make_card(padding=dp(16), spacing=dp(10))
 
-        name = MDLabel(
-            text=item["nazwa_uslugi"],
-            font_style="H6",
-            size_hint_y=None,
-            height=dp(30),
-        )
+        name = heading(item["nazwa_uslugi"], height=dp(30))
 
         price = float(item["cena_za_jednostke"])
         area = float(item["ilosc_metrow"])
@@ -229,34 +227,22 @@ class SummaryScreen(MDBoxLayout):
                 f"Metraż: {area:.2f} m²\n"
                 f"Wartość: {value:.2f} zł"
             ).replace(".", ","),
+            theme_text_color="Custom",
+            text_color=TEXT_DARK,
             size_hint_y=None,
             height=dp(75),
         )
 
-        buttons_layout = MDBoxLayout(
-            orientation="horizontal",
-            spacing=dp(5),
-            size_hint_y=None,
-            height=dp(42),
-        )
+        buttons_layout = button_row(height=dp(44), spacing=dp(6))
 
-        edit_price_button = MDRaisedButton(
-            text="Edytuj cenę",
-            size_hint_x=1,
-            font_size="11sp",
+        edit_price_button = tonal_button(
+            "Cena", size_hint=(1, 1), font_size="13sp"
         )
-
-        edit_area_button = MDRaisedButton(
-            text="Edytuj metraż",
-            size_hint_x=1,
-            font_size="11sp",
+        edit_area_button = tonal_button(
+            "Metraż", size_hint=(1, 1), font_size="13sp"
         )
-
-        delete_button = MDRaisedButton(
-            text="Usuń",
-            size_hint_x=1,
-            font_size="11sp",
-            md_bg_color=(0.8, 0.2, 0.2, 1),
+        delete_button = danger_button(
+            "Usuń", size_hint=(1, 1), font_size="13sp"
         )
 
         edit_price_button.bind(
@@ -303,7 +289,7 @@ class SummaryScreen(MDBoxLayout):
         content = MDBoxLayout(
             orientation="vertical",
             spacing=dp(12),
-            padding=dp(12),
+            padding=dp(16),
         )
 
         value_field = MDTextField(
@@ -311,48 +297,36 @@ class SummaryScreen(MDBoxLayout):
             hint_text=hint,
             input_filter="float",
             mode="rectangle",
+            line_color_focus=PRIMARY,
             size_hint_y=None,
-            height=dp(55),
+            height=dp(56),
         )
 
         error_label = MDLabel(
             text="",
             theme_text_color="Error",
             size_hint_y=None,
-            height=dp(35),
+            height=dp(30),
         )
 
-        buttons = MDBoxLayout(
-            spacing=dp(10),
-            size_hint_y=None,
-            height=dp(45),
-        )
+        buttons = button_row(height=dp(46), spacing=dp(10))
 
-        save_button = MDRaisedButton(
-            text="Zapisz",
-            size_hint_x=1,
+        cancel_button = tonal_button(
+            "Anuluj", height=dp(46), size_hint=(1, 1)
         )
-
-        cancel_button = MDRaisedButton(
-            text="Anuluj",
-            size_hint_x=1,
+        save_button = primary_button(
+            "Zapisz", height=dp(46), size_hint=(1, 1)
         )
 
         content.add_widget(value_field)
         content.add_widget(error_label)
 
-        buttons.add_widget(save_button)
         buttons.add_widget(cancel_button)
+        buttons.add_widget(save_button)
 
         content.add_widget(buttons)
 
-        popup = Popup(
-            title=title,
-            content=content,
-            size_hint=(0.9, None),
-            height=dp(240),
-            auto_dismiss=False,
-        )
+        popup = make_popup(title, content, dp(250))
 
         def save_changes(instance):
             try:
@@ -421,38 +395,32 @@ class SummaryScreen(MDBoxLayout):
         if not items:
             return
 
-        content = BoxLayout(
+        content = MDBoxLayout(
             orientation="vertical",
             spacing=dp(15),
-            padding=dp(15),
+            padding=dp(16),
         )
 
         content.add_widget(
-            Label(
+            MDLabel(
                 text=(
                     "Czy na pewno chcesz usunąć "
                     "wszystkie pozycje kosztorysu?"
-                )
+                ),
+                halign="center",
             )
         )
 
-        buttons = BoxLayout(
-            orientation="horizontal",
-            spacing=dp(10),
-            size_hint_y=None,
-            height=dp(45),
-        )
+        buttons = button_row(height=dp(46), spacing=dp(10))
 
-        popup = Popup(
-            title="Wyczyść kosztorys",
-            content=content,
-            size_hint=(0.9, None),
-            height=dp(220),
-            auto_dismiss=False,
-        )
+        popup = make_popup("Wyczyść kosztorys", content, dp(230))
 
-        cancel_button = Button(text="Anuluj")
-        confirm_button = Button(text="Usuń wszystko")
+        cancel_button = tonal_button(
+            "Anuluj", height=dp(46), size_hint=(1, 1)
+        )
+        confirm_button = danger_button(
+            "Usuń wszystko", height=dp(46), size_hint=(1, 1)
+        )
 
         cancel_button.bind(
             on_release=lambda instance: popup.dismiss()

@@ -1,17 +1,18 @@
-
 import sqlite3
 
 from kivy.metrics import dp
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.popup import Popup
 
 from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.card import MDCard
 from kivymd.uix.label import MDLabel
 from kivymd.uix.textfield import MDTextField
-from kivymd.uix.button import MDRaisedButton
 from kivymd.app import MDApp
 from sharing import generate_estimate_text, share_text
+
+from theme import (
+    BG, PRIMARY, make_card, make_popup, button_row,
+    primary_button, tonal_button, danger_button, heading, muted,
+)
 
 
 class SavedScreen(MDBoxLayout):
@@ -20,22 +21,24 @@ class SavedScreen(MDBoxLayout):
 
         self.calculator = calculator
         self.orientation = "vertical"
+        self.md_bg_color = BG
         self.padding = dp(12)
-        self.spacing = dp(10)
+        self.spacing = dp(8)
 
         self.status_label = MDLabel(
             text="Wybierz usługę i podaj powierzchnię.",
             size_hint_y=None,
             height=dp(35),
             halign="center",
+            theme_text_color="Secondary",
         )
         self.add_widget(self.status_label)
 
-        self.scroll = ScrollView()
+        self.scroll = ScrollView(bar_width=dp(3))
 
         self.cards_layout = MDBoxLayout(
             orientation="vertical",
-            spacing=dp(12),
+            spacing=dp(14),
             padding=dp(4),
             size_hint_y=None,
         )
@@ -58,6 +61,7 @@ class SavedScreen(MDBoxLayout):
                 MDLabel(
                     text="Brak zapisanych usług.",
                     halign="center",
+                    theme_text_color="Secondary",
                     size_hint_y=None,
                     height=dp(100),
                 )
@@ -69,63 +73,57 @@ class SavedScreen(MDBoxLayout):
             self.cards_layout.add_widget(card)
 
     def create_service_card(self, template):
+
         template_id = template["id"]
         service_name = template["nazwa_uslugi"]
         default_price = str(template["domyslna_cena_m2"])
 
-        card = MDCard(
-            orientation="vertical",
-            padding=dp(14),
-            spacing=dp(8),
-            size_hint_y=None,
-            height=dp(280),
-            elevation=2,
-        )
+        card = make_card(padding=dp(18), spacing=dp(12))
 
-        title = MDLabel(
-            text=service_name,
-            font_style="H6",
-            size_hint_y=None,
-            height=dp(32),
-        )
+        # NAZWA USŁUGI
+        title = heading(service_name, height=dp(34))
 
+        # CENA
         price_field = MDTextField(
             hint_text="Cena za m² (zł)",
             text=default_price,
             input_filter="float",
             mode="rectangle",
+            line_color_focus=PRIMARY,
             size_hint_y=None,
-            height=dp(48),
+            height=dp(52),
         )
 
+        # POWIERZCHNIA
         area_field = MDTextField(
             hint_text="Powierzchnia (m²)",
             input_filter="float",
             mode="rectangle",
+            line_color_focus=PRIMARY,
             size_hint_y=None,
-            height=dp(48),
+            height=dp(52),
         )
 
-        # Przyciski edycji i usuwania
-        management_row = MDBoxLayout(
-            orientation="horizontal",
-            spacing=dp(8),
-            size_hint_y=None,
-            height=dp(42),
+        # GÓRA: "Oblicz i dodaj do wyceny" - cała szerokość
+        add_button = primary_button("Oblicz i dodaj do wyceny")
+
+        add_button.bind(
+            on_release=lambda instance: self.add_to_estimate(
+                template_id,
+                price_field.text,
+                area_field.text,
+            )
         )
 
-        edit_button = MDRaisedButton(
-            text="Edytuj",
-            size_hint_x=0.5,
-        )
+        # DÓŁ: "Edytuj" i "Usuń" - po połowie szerokości
+        management_row = button_row(height=dp(46), spacing=dp(10))
+
+        edit_button = tonal_button("Edytuj", size_hint=(0.5, 1))
         edit_button.bind(
             on_release=lambda instance: self.open_edit_popup(template)
         )
 
-        delete_button = MDRaisedButton(
-            text="Usuń",
-            size_hint_x=0.5,
-        )
+        delete_button = danger_button("Usuń", size_hint=(0.5, 1))
         delete_button.bind(
             on_release=lambda instance: self.confirm_delete_template(
                 template_id,
@@ -136,25 +134,11 @@ class SavedScreen(MDBoxLayout):
         management_row.add_widget(edit_button)
         management_row.add_widget(delete_button)
 
-        # Dotychczasowy przycisk dodawania do kosztorysu
-        add_button = MDRaisedButton(
-            text="Oblicz i dodaj do wyceny",
-            size_hint_x=1,
-        )
-
-        add_button.bind(
-            on_release=lambda instance: self.add_to_estimate(
-                template_id,
-                price_field.text,
-                area_field.text,
-            )
-        )
-
         card.add_widget(title)
         card.add_widget(price_field)
         card.add_widget(area_field)
-        card.add_widget(management_row)
         card.add_widget(add_button)
+        card.add_widget(management_row)
 
         return card
 
@@ -163,62 +147,47 @@ class SavedScreen(MDBoxLayout):
     # -------------------------------------------------
 
     def open_edit_popup(self, template):
+
         template_id = template["id"]
-
-        name_field = MDTextField(
-            hint_text="Nazwa usługi",
-            text=template["nazwa_uslugi"],
-            mode="rectangle",
-            size_hint_y=None,
-            height=dp(55),
-        )
-
-        price_field = MDTextField(
-            hint_text="Domyślna cena za m² (zł)",
-            text=str(template["domyslna_cena_m2"]),
-            input_filter="float",
-            mode="rectangle",
-            size_hint_y=None,
-            height=dp(55),
-        )
 
         content = MDBoxLayout(
             orientation="vertical",
+            padding=dp(18),
             spacing=dp(12),
-            padding=dp(12),
+        )
+
+        name_field = MDTextField(
+            text=template["nazwa_uslugi"],
+            hint_text="Nazwa usługi",
+            mode="rectangle",
+            line_color_focus=PRIMARY,
             size_hint_y=None,
-            height=dp(190),
+            height=dp(56),
         )
 
-        content.add_widget(name_field)
-        content.add_widget(price_field)
-
-        buttons_row = MDBoxLayout(
-            orientation="horizontal",
-            spacing=dp(8),
+        price_field = MDTextField(
+            text=str(template["domyslna_cena_m2"]),
+            hint_text="Domyślna cena za m² (zł)",
+            input_filter="float",
+            mode="rectangle",
+            line_color_focus=PRIMARY,
             size_hint_y=None,
-            height=dp(45),
+            height=dp(56),
         )
 
-        popup = Popup(
-            title="Edytuj usługę",
-            content=content,
-            size_hint=(0.9, None),
-            height=dp(310),
-            auto_dismiss=False,
-        )
+        buttons_row = button_row()
 
-        cancel_button = MDRaisedButton(
-            text="Anuluj",
-            size_hint_x=0.5,
+        popup = make_popup("Edytuj usługę", content, dp(320))
+
+        cancel_button = tonal_button(
+            "Anuluj", height=dp(48), size_hint=(0.5, 1)
         )
         cancel_button.bind(
             on_release=lambda instance: popup.dismiss()
         )
 
-        save_button = MDRaisedButton(
-            text="Zapisz",
-            size_hint_x=0.5,
+        save_button = primary_button(
+            "Zapisz", height=dp(48), size_hint=(0.5, 1)
         )
         save_button.bind(
             on_release=lambda instance: self.save_template_changes(
@@ -231,6 +200,9 @@ class SavedScreen(MDBoxLayout):
 
         buttons_row.add_widget(cancel_button)
         buttons_row.add_widget(save_button)
+
+        content.add_widget(name_field)
+        content.add_widget(price_field)
         content.add_widget(buttons_row)
 
         popup.open()
@@ -283,7 +255,7 @@ class SavedScreen(MDBoxLayout):
         content = MDBoxLayout(
             orientation="vertical",
             spacing=dp(12),
-            padding=dp(12),
+            padding=dp(14),
         )
 
         message = MDLabel(
@@ -296,32 +268,19 @@ class SavedScreen(MDBoxLayout):
 
         content.add_widget(message)
 
-        buttons_row = MDBoxLayout(
-            orientation="horizontal",
-            spacing=dp(8),
-            size_hint_y=None,
-            height=dp(45),
-        )
+        buttons_row = button_row(height=dp(46))
 
-        popup = Popup(
-            title="Potwierdź usunięcie",
-            content=content,
-            size_hint=(0.9, None),
-            height=dp(220),
-            auto_dismiss=False,
-        )
+        popup = make_popup("Potwierdź usunięcie", content, dp(220))
 
-        cancel_button = MDRaisedButton(
-            text="Anuluj",
-            size_hint_x=0.5,
+        cancel_button = tonal_button(
+            "Anuluj", height=dp(46), size_hint=(0.5, 1)
         )
         cancel_button.bind(
             on_release=lambda instance: popup.dismiss()
         )
 
-        delete_button = MDRaisedButton(
-            text="Usuń",
-            size_hint_x=0.5,
+        delete_button = danger_button(
+            "Usuń", height=dp(46), size_hint=(0.5, 1)
         )
         delete_button.bind(
             on_release=lambda instance: self.delete_template(
@@ -412,7 +371,7 @@ class SavedScreen(MDBoxLayout):
     def show_message(self, message, title="Informacja"):
         content = MDBoxLayout(
             orientation="vertical",
-            padding=dp(12),
+            padding=dp(14),
             spacing=dp(12),
         )
 
@@ -423,20 +382,9 @@ class SavedScreen(MDBoxLayout):
             )
         )
 
-        close_button = MDRaisedButton(
-            text="OK",
-            size_hint_x=1,
-            size_hint_y=None,
-            height=dp(45),
-        )
+        close_button = primary_button("OK", height=dp(46))
 
-        popup = Popup(
-            title=title,
-            content=content,
-            size_hint=(0.9, None),
-            height=dp(230),
-            auto_dismiss=False,
-        )
+        popup = make_popup(title, content, dp(250))
 
         close_button.bind(
             on_release=lambda instance: popup.dismiss()
